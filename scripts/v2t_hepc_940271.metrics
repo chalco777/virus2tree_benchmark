@@ -1,0 +1,32 @@
+[2025-07-24 17:51:14] [ERROR] Temporary directory '/space1/tmp/r2t_hepc6' already exists and is not void. Please specify a novel directory to avoid conflicts with the new run.
+srun: error: c81n-38: task 0: Exited with exit code 1
+Command exited with non-zero status 1
+	Command being timed: "srun --cpu-bind=none --mem-bind=none virus2tree_step1.sh -i ../data/hepc.csv -g ../data/hepco.csv --use_only_mat_peptides --threads 24 --root_dir ../results_hepc --temp_dir /space1/tmp/r2t_hepc6 --out_dir r2t_ref"
+	User time (seconds): 0.01
+	System time (seconds): 0.00
+	Percent of CPU this job got: 9%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.25
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 8344
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 1138
+	Voluntary context switches: 55
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 24
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+JobIDRaw        JobName      State ExitCode    Elapsed   TotalCPU    CPUTime     MaxRSS  MaxVMSize     AveRSS     AveCPU 
+------------ ---------- ---------- -------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- 
+940271       v2t_step1+    RUNNING      0:0   00:00:36  00:00.079   00:14:24                                             
+940271.batch      batch    RUNNING      0:0   00:00:36   00:00:00   00:14:24                                             
+940271.exte+     extern    RUNNING      0:0   00:00:36   00:00:00   00:14:24                                             
+940271.0     virus2tre+     FAILED      1:0   00:00:01  00:00.079   00:00:24          0          0          0   00:00:00 
