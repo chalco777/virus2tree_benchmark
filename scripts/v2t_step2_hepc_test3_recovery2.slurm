@@ -92,7 +92,7 @@ if in_list "$SAMPLE" "${PACBIO_SAMPLES[@]}"; then
   READ_TYPE="-ax map-pb"
   R2=""
 else
-  READ_TYPE=$([[ -n "$R2" ]] && echo "paired" || echo "-ax map-sr")
+  READ_TYPE=$([[ -n "$R2" ]] && echo "paired" || echo "-ax sr")
 fi
 LABEL="$label"
 
@@ -118,10 +118,9 @@ SAMPLE="${LABEL#${PREFIX}_}"
 set +e
 if [[ "$READ_TYPE" == "paired" ]]; then
   "${TIMECMD}" -v \
-  srun -n 1 -c "${SLURM_CPUS_PER_TASK}" --cpu-bind=cores --mem-bind=local \
   v2t-step2 \
       --read_type paired \
-      --minimap2_options -ax sr \  
+      --minimap2_options "-ax sr" \
       --reads "$R1" "$R2" \
       --threads "${SLURM_CPUS_PER_TASK}" \
       --root_dir "${OUT_ROOT}" \
