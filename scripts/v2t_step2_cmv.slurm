@@ -1,9 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=step2_cmv
-#SBATCH --begin=2025-08-04T12:00:00
 #SBATCH --account=proj-gm0001
 #SBATCH --array=0-699%9999  #for 684 jobs
-#SBATCH --output=/stornext/snfs170/next-gen/scratch/adrian/projects/r2t/results_cmv_test/cmv_test_%A_%a.out
+#SBATCH --output=/stornext/snfs170/next-gen/scratch/adrian/projects/r2t/results_cmv_step2/cmv_step2_%A_%a.out
 #SBATCH --partition=long
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
@@ -12,29 +11,24 @@
 #SBATCH --export=ALL
 
 
-# ---------- ENTORNO ----------
 source ~/.bashrc
 conda activate my_env
 
-# ---------- RUTAS ----------
 PROJECT=/stornext/snfs170/next-gen/scratch/adrian/projects/r2t
 READS_DIR=${PROJECT}/results_reads_cmv
-OUT_ROOT=${PROJECT}/results_cmv_test           # usar ruta absoluta (evita problemas de cwd)
+OUT_ROOT=${PROJECT}/results_cmv_step2          # usar ruta absoluta (evita problemas de cwd)
 LOGDIR=${OUT_ROOT}
 PREFIX=CMV
 mkdir -p "${LOGDIR}"
 
 TASK=${SLURM_ARRAY_TASK_ID:-0}
 TMPDIR=/space1/tmp/r2t_cmv_${SLURM_JOB_ID}_${TASK}
-METRICFILE=${LOGDIR}/v2t_step2_%A_%a.metrics
+METRICFILE=${LOGDIR}/cmv_step2_%A_%a.metrics
 TIMECMD=/stornext/snfs170/next-gen/scratch/adrian/local/bin/time
 METRICFILE_RESOLVED="${METRICFILE//%A/${SLURM_ARRAY_JOB_ID:-$SLURM_JOB_ID}}"
 METRICFILE_RESOLVED="${METRICFILE_RESOLVED//%a/${SLURM_ARRAY_TASK_ID:-$TASK}}"
 
-# ---------- INVENTARIO DE TRABAJOS (PE y SE) ----------
-# Construye una lista de trabajos a partir del contenido de READS_DIR.
-# Cada entrada tiene: LABEL, TYPE (pe_short|se_short), R1, R2(opt)
-# ---------- INVENTARIO DE TRABAJOS (PE y SE) ----------
+
 shopt -s nullglob extglob
 
 declare -a LABELS TYPES R1S R2S
@@ -67,7 +61,7 @@ for r1 in ${READS_DIR}/${PREFIX}_*_1.fastq ${READS_DIR}/${PREFIX}_*_1.fastq.gz \
   SEEN[$label]=1
 
   LABELS+=("$label")
-  TYPES+=("pe_short")
+  TYPES+=("-ax sr")
   R1S+=("$r1")
   R2S+=("$r2")
 done
@@ -84,7 +78,7 @@ for se in ${READS_DIR}/${PREFIX}_!(*_[12]|*_R[12]).fastq \
   SEEN[$label]=1
 
   LABELS+=("$label")
-  TYPES+=("se_short")
+  TYPES+=("-ax sr")
   R1S+=("$se")
   R2S+=("")
 done
@@ -108,7 +102,6 @@ READ_TYPE="${TYPES[$TASK]}"
 R1="${R1S[$TASK]}"
 R2="${R2S[$TASK]}"
 
-# Deriva SAMPLE solo para logging (parte después del prefijo y guion bajo)
 SAMPLE="${LABEL#${PREFIX}_}"
 
 PACBIO_SAMPLES=(ERR5052619 SRR13587450 SRR13587451 SRR13587452)
@@ -117,11 +110,11 @@ in_list() { local needle="$1"; shift; for x in "$@"; do [[ "$x" == "$needle" ]] 
 
 ### [LONG-READ OVERRIDE] 
 if in_list "$SAMPLE" "${PACBIO_SAMPLES[@]}"; then
-  READ_TYPE="pacbio"
+  READ_TYPE="-ax map-pb"
   R2=""
   echo "[INFO] OVERRIDE: $SAMPLE -> READ_TYPE=-ax map-pb (SE)" >> "${METRICFILE_RESOLVED}"
 elif in_list "$SAMPLE" "${ONT_SAMPLES[@]}"; then
-  READ_TYPE="ont"
+  READ_TYPE="-ax map-ont"
   R2=""
   echo "[INFO] OVERRIDE: $SAMPLE -> READ_TYPE=-ax map-ont (SE)" >> "${METRICFILE_RESOLVED}"
 fi
@@ -141,11 +134,11 @@ fi
 
 # ---------- EJECUCIÓN + PERFILADO ----------
 set +e
-if [[ "$READ_TYPE" == "pe_short" ]]; then
+if [[ "$READ_TYPE" == "-ax sr" ]]; then
   "${TIMECMD}" -v \
-  srun -n 1 -c "${SLURM_CPUS_PER_TASK}" --cpu-bind=cores --mem-bind=local \
-  virus2tree_step2.sh \
-      --read_type pe_short \
+  v2t-step2 \
+      --read_type paired \
+      -map_op "-ax sr" \
       --reads "$R1" "$R2" \
       --threads "${SLURM_CPUS_PER_TASK}" \
       --root_dir "${OUT_ROOT}" \
@@ -154,9 +147,9 @@ if [[ "$READ_TYPE" == "pe_short" ]]; then
       2>>"${METRICFILE_RESOLVED}"
 else
   "${TIMECMD}" -v \
-  srun -n 1 -c "${SLURM_CPUS_PER_TASK}" --cpu-bind=cores --mem-bind=local \
-  virus2tree_step2.sh \
-      --read_type "$READ_TYPE"\
+  v2t-step2 \
+      --read_type single \
+      -map_op "$READ_TYPE" \
       --reads "$R1" \
       --threads "${SLURM_CPUS_PER_TASK}" \
       --root_dir "${OUT_ROOT}" \

@@ -5,6 +5,14 @@ This notebook is about the benchmarking of [virus2tree](https://github.com/Danie
 
 ## Step1 HepC and CMV
 
+The treatment of CMV was different from that of HepC
+Using the help of the script `scripts/assembly_selection_cmv.py` and manually curating, 28 representative assemblies out of the 410 original ones were selected. From the resulting metadata table, I chose relevant columns, and then used some regular expressions (the user can see the main one below), to get the final format for the accession file in `scripts/cmv_filtered.csv`. 
+
+![figura_regex](docs/figure_regex.png)
+
+To these assemblies, Murine cytomegalovirus was added as the outgroup
+
+
 ## Step2 HepC
 
 ```bash
@@ -76,7 +84,6 @@ After checking, better generate a more comprehensive file report with all the FA
 ```bash
 srun \
   bash -lc '
-shopt -s nullglob
 
 OUT="final_report_hepc.tsv"
 : > "$OUT"
@@ -230,11 +237,11 @@ grep '945910_.*NO_FLAG' final_report_duplicated_samples_hepc.tsv | cut -f3 > no_
 Again, we delete any rest of the r2t dirs associated to these samples
 ```bash
 cut -f1 no_flag_second_run.tsv | sort -u \
->   | while read sample; do
->       find r2t_ref -maxdepth 1 -type d \
->         \( -name "04_*${sample}*" -o -name "05_*${sample}*" \) \
->         -exec rm -rf {} +
->     don
+   | while read sample; do
+       find r2t_ref -maxdepth 1 -type d \
+         \( -name "04_*${sample}*" -o -name "05_*${sample}*" \) \
+         -exec rm -rf {} +
+     done
 ```
 
 Let's run a second recovery script
@@ -244,3 +251,47 @@ cut -f1 ../results_hepc_test2/no_flag_second_run.tsv \
   | sort -u \
   | xargs -r -n1 -I{} sbatch --export=ALL,SAMPLE="{}" v2t_step2_hepc_test3_recovery2.slurm' > nohup_hepc_$(date +%F_%H%M).log 2>&1 &
 ```
+
+```bash
+srun \
+  bash -lc '
+OUT="final_report_2nd_run_hepc.tsv"
+: > "$OUT"
+
+echo -e "FILE\tLABEL\tSAMPLE\tJOB_ID\tSTATUS" | tee -a "$OUT"
+
+for f in $(ls snd_recov_*.metrics 2>/dev/null | sort); do
+  label=$(awk -F": " '\''/^LABEL[[:space:]]*:/ {print $2; exit}'\'' "$f")
+  sample=$(awk -F": " '\''/^SAMPLE[[:space:]]*:/ {print $2; exit}'\'' "$f")
+  jobid=$(awk -F": " '\''/^JOB_ID[[:space:]]*:/ {print $2; exit}'\'' "$f")
+
+  status="NO_FLAG"
+  if grep -Eq "virus2tre\\+\\s+FAILED|virus2tree\\+\\s+FAILED" "$f"; then
+    status="FAILED"
+  elif grep -Eq "virus2tre\\+\\s+COMPLETED|virus2tree\\+\\s+COMPLETED" "$f"; then
+    status="COMPLETED"
+  fi
+
+  echo -e "${f}\t${label}\t${sample}\t${jobid}\t${status}" | tee -a "$OUT"
+done
+
+echo "[OK] Generated $OUT"
+'
+```
+
+Extract again those with no flag, now only 9 left, delete them form the read2tree dir, and run them
+grep 'NO_FLAG' final_report_2nd_run_hepc.tsv| cut -f3 > no_flag_third_run.tsv
+
+cut -f1 no_flag_third_run.tsv | sort -u \
+   | while read sample; do
+       find r2t_ref -maxdepth 1 -type d \
+         \( -name "04_*${sample}*" -o -name "05_*${sample}*" \) \
+         -exec rm -rf {} +
+     done
+nohup bash -lc '
+cut -f1 ../results_hepc_test2/no_flag_third_run.tsv \
+  | sort -u \
+  | xargs -r -n1 -I{} sbatch --export=ALL,SAMPLE="{}" v2t_step2_hepc_test3_recovery2.slurm' > nohup_hepc_third$(date +%F_%H%M).log 2>&1 &
+
+```
+

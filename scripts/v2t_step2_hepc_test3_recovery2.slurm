@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=step2_hepc
 #SBATCH --account=proj-gm0001
-#SBATCH --output=/stornext/snfs170/next-gen/scratch/adrian/projects/r2t/results_hepc_test2/snd_recov_%A.out
-#SBATCH --partition=medium
+#SBATCH --output=/stornext/snfs170/next-gen/scratch/adrian/projects/r2t/results_hepc_test2/third_recov_%A.out
+#SBATCH --partition=long
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=48G
 #SBATCH --mail-type=END,FAIL
@@ -28,7 +28,7 @@ mkdir -p "${LOGDIR}"
 
 TASK=${SLURM_ARRAY_TASK_ID:-0}
 TMPDIR=/space1/tmp/r2t_hepc_${SLURM_JOB_ID}_${TASK}
-METRICFILE=${LOGDIR}/snd_recov_%A.metrics
+METRICFILE=${LOGDIR}/third_recov_%A.metrics
 TIMECMD=/stornext/snfs170/next-gen/scratch/adrian/local/bin/time
 METRICFILE_RESOLVED="${METRICFILE//%A/${SLURM_ARRAY_JOB_ID:-$SLURM_JOB_ID}}"
 METRICFILE_RESOLVED="${METRICFILE_RESOLVED//%a/${SLURM_ARRAY_TASK_ID:-$TASK}}"
@@ -89,10 +89,10 @@ R1="${r1r2%%|*}"; R2="${r1r2#*|}"
 [[ -n "$R1" ]] || { echo "[ERR] No R1 found for label=$label in $READS_DIR"; exit 2; }
 
 if in_list "$SAMPLE" "${PACBIO_SAMPLES[@]}"; then
-  READ_TYPE="pacbio"
+  READ_TYPE="-ax map-pb"
   R2=""
 else
-  READ_TYPE=$([[ -n "$R2" ]] && echo "pe_short" || echo "se_short")
+  READ_TYPE=$([[ -n "$R2" ]] && echo "paired" || echo "-ax map-sr")
 fi
 LABEL="$label"
 
@@ -116,11 +116,12 @@ SAMPLE="${LABEL#${PREFIX}_}"
 
 # ---------- The execution ----------
 set +e
-if [[ "$READ_TYPE" == "pe_short" ]]; then
+if [[ "$READ_TYPE" == "paired" ]]; then
   "${TIMECMD}" -v \
   srun -n 1 -c "${SLURM_CPUS_PER_TASK}" --cpu-bind=cores --mem-bind=local \
-  virus2tree_step2.sh \
-      --read_type pe_short \
+  v2t-step2 \
+      --read_type paired \
+      --minimap2_options -ax sr \  
       --reads "$R1" "$R2" \
       --threads "${SLURM_CPUS_PER_TASK}" \
       --root_dir "${OUT_ROOT}" \
@@ -130,8 +131,9 @@ if [[ "$READ_TYPE" == "pe_short" ]]; then
 else
   "${TIMECMD}" -v \
   srun -n 1 -c "${SLURM_CPUS_PER_TASK}" --cpu-bind=cores --mem-bind=local \
-  virus2tree_step2.sh \
-      --read_type "${READ_TYPE}" \
+  v2t-step2 \
+      --read_type single \
+      -map_op "$READ_TYPE" \
       --reads "$R1" \
       --threads "${SLURM_CPUS_PER_TASK}" \
       --root_dir "${OUT_ROOT}" \
