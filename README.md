@@ -294,4 +294,16 @@ cut -f1 ../results_hepc_test2/no_flag_third_run.tsv \
   | xargs -r -n1 -I{} sbatch --export=ALL,SAMPLE="{}" v2t_step2_hepc_test3_recovery2.slurm' > nohup_hepc_third$(date +%F_%H%M).log 2>&1 &
 
 ```
-
+And finally, all the reamining 9 samples, in a third run, were finished successfully. So for that I had to change their partition form medium to long, so they could run without limit. Most of them finished after one day and some hours.
+```bash
+$ grep -l " read2tree step 2 map completed successf" third_recov_*.out
+third_recov_950525.out
+third_recov_950526.out
+third_recov_950527.out
+third_recov_950528.out
+third_recov_950529.out
+third_recov_950530.out
+third_recov_950531.out
+third_recov_950532.out
+third_recov_950533.out
+```
