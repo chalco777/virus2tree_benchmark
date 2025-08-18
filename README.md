@@ -252,6 +252,8 @@ cut -f1 ../results_hepc_test2/no_flag_second_run.tsv \
   | xargs -r -n1 -I{} sbatch --export=ALL,SAMPLE="{}" v2t_step2_hepc_test3_recovery2.slurm' > nohup_hepc_$(date +%F_%H%M).log 2>&1 &
 ```
 
+Now let's analyze the result of all the samples that were ran in the second recovery run
+
 ```bash
 srun \
   bash -lc '
@@ -279,9 +281,10 @@ echo "[OK] Generated $OUT"
 '
 ```
 
-Extract again those with no flag, now only 9 left, delete them form the read2tree dir, and run them
-grep 'NO_FLAG' final_report_2nd_run_hepc.tsv| cut -f3 > no_flag_third_run.tsv
+Extract again those with no flag, now only 9 left, delete them form the read2tree dir, and run them one finally last time
 
+```bash
+grep 'NO_FLAG' final_report_2nd_run_hepc.tsv| cut -f3 > no_flag_third_run.tsv
 cut -f1 no_flag_third_run.tsv | sort -u \
    | while read sample; do
        find r2t_ref -maxdepth 1 -type d \
@@ -306,4 +309,13 @@ third_recov_950530.out
 third_recov_950531.out
 third_recov_950532.out
 third_recov_950533.out
+```
+
+From all the mapped samples, only 759 made it to the final tree
+```bash
+$ srun ls -d 04* | cut -d "_" -f 4-| sort -u | wc -l
+779
+$ srun ls -d 05* | cut -d "_" -f 5-|rev | cut -d "_" -f2-|rev|  sort -u | wc -l 
+759
+
 ```
