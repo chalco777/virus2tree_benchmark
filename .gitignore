@@ -1,0 +1,8 @@
+# === Data cruda y derivados pesados ===
+data/**
+
+# === Resultados de pipelines ===
+results*/**
+results_*/**
+r2t_2025/**
+r2t_2025_copy/**

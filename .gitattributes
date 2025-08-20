@@ -1,0 +1,4 @@
+*.html linguist-generated
+*.log  linguist-generated
+*.err  linguist-generated
+*.out  linguist-generated
