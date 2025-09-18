@@ -319,3 +319,88 @@ $ srun ls -d 05* | cut -d "_" -f 5-|rev | cut -d "_" -f2-|rev|  sort -u | wc -l
 759
 
 ```
+
+## Step2 CMV
+
+Only 647 out of the initial 684 samples made it to the final tree
+
+srun ls -d 05* | cut -d ""
+-f 5-|rev | cut -d "_" -f2-|rev|  sort -u | wc -l
+647
+(base) [u260437@analysis2 adrian/projects/r2t/results_cmv_step2/r2tref]$ srun ls -d 04* | cut -d "" -f 4-| sort -u | wc -l
+648
+(base) [u260437@analysis2 adrian/projects/r2t/results_cmv_step2/r2t_ref]$ ls ../*.metrics | wc -l
+684
+
+Reviewing the reason why
+
+
+
+# Crear lista de códigos de muestra desde metrics
+echo "Extrayendo códigos de muestra desde metrics..."
+ls ../*.metrics | while read file; do
+    grep "SAMPLE" "$file" | head -1 | awk '{print $3}'
+done | sort -u > samples_from_metrics.txt
+
+# Crear lista de códigos de muestra desde directorios 04*
+echo "Extrayendo códigos de muestra desde directorios 04*..."
+ls -d 04* | cut -d "_" -f 4- | sed 's/_1$//' | sort -u > samples_from_04dirs.txt
+
+# Crear lista de códigos de muestra desde directorios 05*
+echo "Extrayendo códigos de muestra desde directorios 05*..."
+ls -d 05* | cut -d "_" -f 5- | rev | cut -d "_" -f2- | rev | sed 's/_1$//' | sort -u > samples_from_05dirs.txt
+
+# Encontrar muestras que están en metrics pero NO en 04*
+echo "Identificando muestras en metrics pero NO en 04*..."
+comm -23 samples_from_metrics.txt samples_from_04dirs.txt > muestras_metrics_no_04.txt
+
+# Encontrar la diferencia entre 04* y 05* (muestra que no tiene carpeta 05*)
+echo "Identificando diferencia entre 04* y 05*..."
+comm -23 samples_from_04dirs.txt samples_from_05dirs.txt > diferencia_04_05.txt
+
+# Crear archivo con información de muestras en metrics pero no en 04*
+echo "Creando archivo con información detallada..."
+echo "=== MUESTRAS EN METRICS PERO NO EN DIRECTORIOS 04* ===" > reporte_muestras_faltantes.txt
+echo "Total de muestras: $(wc -l < muestras_metrics_no_04.txt)" >> reporte_muestras_faltantes.txt
+echo "" >> reporte_muestras_faltantes.txt
+cat muestras_metrics_no_04.txt >> reporte_muestras_faltantes.txt
+
+echo "" >> reporte_muestras_faltantes.txt
+echo "=== DIFERENCIA ENTRE 04* Y 05* (CARPETA FALTANTE) ===" >> reporte_muestras_faltantes.txt
+echo "Muestra(s) que tienen directorio 04* pero NO 05*:" >> reporte_muestras_faltantes.txt
+cat diferencia_04_05.txt >> reporte_muestras_faltantes.txt
+
+# Crear archivo con las últimas 20 líneas de cada muestra que está en metrics pero no en 04*
+echo "Extrayendo últimas 20 líneas de archivos metrics para muestras faltantes..."
+echo "=== ÚLTIMAS 20 LÍNEAS DE CADA MUESTRA EN METRICS PERO NO EN 04* ===" > ultimas_lineas_muestras_faltantes.txt
+echo "" >> ultimas_lineas_muestras_faltantes.txt
+
+while read sample; do
+    # Encontrar el archivo metrics correspondiente
+    metrics_file=$(ls ../*.metrics | xargs grep -l "SAMPLE.*${sample}" 2>/dev/null | head -1)
+    if [ -n "$metrics_file" ]; then
+        echo "=== MUESTRA: $sample (archivo: $(basename $metrics_file)) ===" >> ultimas_lineas_muestras_faltantes.txt
+        tail -40 "$metrics_file" >> ultimas_lineas_muestras_faltantes.txt
+        echo "" >> ultimas_lineas_muestras_faltantes.txt
+        echo "----------------------------------------" >> ultimas_lineas_muestras_faltantes.txt
+        echo "" >> ultimas_lineas_muestras_faltantes.txt
+    fi
+done < muestras_metrics_no_04.txt
+
+echo "Análisis completado. Archivos generados:"
+echo "- reporte_muestras_faltantes.txt: Resumen de muestras faltantes"
+echo "- ultimas_lineas_muestras_faltantes.txt: Últimas 20 líneas de cada muestra faltante"
+echo ""
+echo "Estadísticas:"
+echo "Muestras en metrics: $(wc -l < samples_from_metrics.txt)"
+echo "Muestras en 04*: $(wc -l < samples_from_04dirs.txt)"
+echo "Muestras en 05*: $(wc -l < samples_from_05dirs.txt)"
+echo "Muestras en metrics pero NO en 04*: $(wc -l < muestras_metrics_no_04.txt)"
+echo "Diferencia entre 04* y 05*: $(wc -l < diferencia_04_05.txt)"
+
+# Limpiar archivos temporales
+rm samples_from_metrics.txt samples_from_04dirs.txt samples_from_05dirs.txt muestras_metrics_no_04.txt diferencia_04_05.txt
+
+
+ERROR: Error in sbatch step2 cmv, hace que los single short reads corran como paired end reads: arreglar
+the other, the single differencebetwen 04 and 05 was for "no mapped reads" . NO ERROR THERE!! CHECKED
