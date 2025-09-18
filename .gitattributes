@@ -2,3 +2,4 @@
 *.log  linguist-generated
 *.err  linguist-generated
 *.out  linguist-generated
+*.metrics linguist-generated
