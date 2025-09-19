@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --job-name=step3_hepc
+#SBATCH --job-name=step3_cmv
 #SBATCH --account=proj-gm0001
 #SBATCH --partition=long
-#SBATCH --output=hepc_step3_%j.out
+#SBATCH --output=cmv_step3_%j.out
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=64G
 #SBATCH --mail-type=END,FAIL
@@ -13,9 +13,8 @@ source ~/.bashrc
 conda activate my_env
 
 # ---------- LOGS ----------
-METRICFILE=hepc_step3_${SLURM_JOB_ID}.metrics
+METRICFILE=cmv_step3_${SLURM_JOB_ID}.metrics
 
-# srun hereda los --cpus-per-task del job; /usr/bin/time -v captura ~30 métricas
 TIMECMD=/stornext/snfs170/next-gen/scratch/adrian/local/bin/time   # ruta fija
 R2T_DIR=/stornext/snfs170/next-gen/scratch/adrian/projects/r2t/results_cmv_step2
 
@@ -25,7 +24,6 @@ read2tree --step 3combine \
 --dna_reference ${R2T_DIR}/dna_ref.fa \
 --output_path ${R2T_DIR}/r2t_ref --tree --debug \
 2>>"${METRICFILE}"
-
 
 sleep 30
 sacct -j "${SLURM_JOB_ID}" \
